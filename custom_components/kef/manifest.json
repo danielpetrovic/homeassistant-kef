@@ -10,6 +10,6 @@
   "issue_tracker": "https://github.com/EvotecIT/homeassistant-kef/issues",
   "loggers": ["custom_components.kef"],
   "quality_scale": "bronze",
-  "version": "0.8.41",
+  "version": "0.8.42",
   "zeroconf": ["_airplay._tcp.local."]
 }
