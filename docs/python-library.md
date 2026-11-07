@@ -56,6 +56,7 @@ The most useful models are:
 - `KefDeviceInfo`: model, firmware, MAC, release text
 - `KefPlaybackInfo`: current playback metadata
 - `KefEqProfile`: equalizer and room/setup values
+- `KefSurroundDevice`: a speaker paired for wireless surround, with its position and connection state
 - `KefWifiInfo`: Wi-Fi details when the speaker exposes them
 - `KefBackend`: `modern` or `legacy`
 
@@ -97,6 +98,8 @@ For modern devices, `async_refresh()` includes source, power state, volume, mute
 - `async_set_volume_step(step)`
 - `async_set_volume_limit_enabled(enabled)`
 - `async_set_default_volume_for_source(source, volume)`
+- `async_set_wireless_rear_mode(mode)`: `surround` (5.1.2) or `rearSurround` (7.1.2), XIO with wireless surround firmware
+- `async_set_wireless_rear_gain(gain)`: -10 to 10 in steps of 0.5, XIO with wireless surround firmware
 
 ## Choosing a Backend
 

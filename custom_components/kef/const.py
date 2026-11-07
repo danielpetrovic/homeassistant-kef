@@ -176,6 +176,23 @@ MASTER_CHANNEL_OPTIONS = {
     "right": "Right",
 }
 
+# The XIO prefers one virtualiser. The speaker itself names the Dolby processing
+# "Dolby Surround" (the KEF Connect app says "Dolby virtualiser").
+PREFERRED_VIRTUALISER_OPTIONS = {
+    "dolby": "Dolby Surround",
+    "dts_virtual_x": "DTS Virtual:X",
+}
+
+# With DTS Virtual:X preferred the soundbar renders 12 output channels, whatever
+# surround layout it has stored.
+DTS_VIRTUAL_X_LAYOUT = "7.1.4"
+
+# The KEF Connect app calls these the channel layouts 5.1.2 and 7.1.2.
+WIRELESS_REAR_MODE_OPTIONS = {
+    "surround": "5.1.2",
+    "rearSurround": "7.1.2",
+}
+
 IR_CODE_OPTIONS = {
     "ir_code_set_a": "Set A",
     "ir_code_set_b": "Set B",

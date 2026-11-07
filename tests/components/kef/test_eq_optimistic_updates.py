@@ -43,6 +43,7 @@ from custom_components.kef.select import (
     _async_set_streaming_quality,
     _async_set_subwoofer_preset,
     _async_set_wake_source,
+    _async_set_wireless_rear_mode,
 )
 from custom_components.kef.switch import (
     SWITCHES,
@@ -58,7 +59,6 @@ from custom_components.kef.switch import (
     _async_set_kw1_wake,
     _async_set_per_input_startup_volume,
     _async_set_phase_correction,
-    _async_set_prefer_virtual_x,
     _async_set_remote_ir,
     _async_set_standby_led,
     _async_set_startup_tone,
@@ -324,10 +324,10 @@ _SETTERS = [
         False,
     ),
     (
-        _async_set_prefer_virtual_x,
-        "async_set_prefer_virtual_x",
-        "prefer_virtual_x",
-        True,
+        _async_set_wireless_rear_mode,
+        "async_set_wireless_rear_mode",
+        "wireless_rear_mode",
+        "rearSurround",
     ),
 ]
 

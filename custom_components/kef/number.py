@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -48,6 +48,16 @@ async def _async_set_volume_step(
     client = get_initialized_client(coordinator)
     await client.async_set_volume_step(round(value))
     coordinator.async_apply_local_change(volume_step=round(value))
+
+
+async def _async_set_wireless_rear_gain(
+    coordinator: KefCoordinator,
+    value: float,
+) -> None:
+    """Set the wireless rear speaker gain."""
+    client = get_initialized_client(coordinator)
+    await client.async_set_wireless_rear_gain(value)
+    coordinator.async_apply_local_change(wireless_rear_gain=value)
 
 
 async def _async_set_fixed_volume_level(
@@ -283,6 +293,19 @@ NUMBERS: tuple[KefNumberDescription, ...] = (
         async_set_fn=_async_set_sub_out_low_pass_frequency,
     ),
     KefNumberDescription(
+        key="wireless_rear_gain",
+        translation_key="wireless_rear_gain",
+        entity_category=EntityCategory.CONFIG,
+        native_min_value=-10.0,
+        native_max_value=10.0,
+        native_step=0.5,
+        value_fn=lambda data: (
+            data.wireless_rear_gain if data.wireless_rear_mode is not None else None
+        ),
+        async_set_fn=_async_set_wireless_rear_gain,
+        model_feature="xio",
+    ),
+    KefNumberDescription(
         key="desk_mode_db",
         translation_key="desk_mode_db",
         entity_category=EntityCategory.CONFIG,
@@ -323,14 +346,27 @@ async def async_setup_entry(
     if coordinator.data.device.backend is not KefBackend.MODERN:
         return
 
-    entities: list[NumberEntity] = [
-        KefNumber(coordinator, description)
-        for description in NUMBERS
-        if description.value_fn(coordinator.data) is not None
-        and model_supports_feature(
-            coordinator.data.device.model, description.model_feature
-        )
-    ]
+    known_numbers: set[str] = set()
+
+    @callback
+    def _async_add_numbers() -> None:
+        """Discover optional controls when firmware starts reporting their values."""
+        entities = [
+            KefNumber(coordinator, description)
+            for description in NUMBERS
+            if description.key not in known_numbers
+            and description.value_fn(coordinator.data) is not None
+            and model_supports_feature(
+                coordinator.data.device.model, description.model_feature
+            )
+        ]
+        known_numbers.update(entity.entity_description.key for entity in entities)
+        if entities:
+            async_add_entities(entities)
+
+    _async_add_numbers()
+    entry.async_on_unload(coordinator.async_add_listener(_async_add_numbers))
+    entities: list[NumberEntity] = []
     for source, value in coordinator.data.default_volume_by_source.items():
         entities.append(
             KefSourceVolumeNumber(

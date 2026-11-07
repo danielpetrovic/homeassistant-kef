@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -16,16 +16,19 @@ from .const import (
     BASS_EXTENSION_OPTIONS,
     CABLE_MODE_OPTIONS,
     DOMAIN,
+    DTS_VIRTUAL_X_LAYOUT,
     EQ_BUTTON_OPTIONS,
     FAVOURITE_BUTTON_OPTIONS,
     IR_CODE_OPTIONS,
     MASTER_CHANNEL_OPTIONS,
     POLARITY_OPTIONS,
+    PREFERRED_VIRTUALISER_OPTIONS,
     SOUND_PROFILE_OPTIONS,
     STANDBY_MODE_OPTIONS,
     STREAMING_QUALITY_OPTIONS,
     SUBWOOFER_PRESET_OPTIONS,
     WAKE_SOURCE_OPTIONS,
+    WIRELESS_REAR_MODE_OPTIONS,
     model_supports_feature,
 )
 from .coordinator import KefConfigEntry, KefCoordinator
@@ -184,6 +187,34 @@ async def _async_set_sound_profile(
     apply_eq_profile_change(coordinator, sound_profile=value)
 
 
+async def _async_set_preferred_virtualiser(
+    coordinator: KefCoordinator,
+    value: str,
+) -> None:
+    """Prefer DTS Virtual:X or Dolby Surround."""
+    client = get_initialized_client(coordinator)
+    prefer_virtual_x = value == "dts_virtual_x"
+    await client.async_set_prefer_virtual_x(prefer_virtual_x)
+    coordinator.async_apply_local_change(prefer_virtual_x=prefer_virtual_x)
+
+
+def _preferred_virtualiser_value(data: KefSnapshot) -> str | None:
+    """Return the preferred virtualiser as a select option key."""
+    if data.prefer_virtual_x is None:
+        return None
+    return "dts_virtual_x" if data.prefer_virtual_x else "dolby"
+
+
+async def _async_set_wireless_rear_mode(
+    coordinator: KefCoordinator,
+    value: str,
+) -> None:
+    """Set the surround channel layout."""
+    client = get_initialized_client(coordinator)
+    await client.async_set_wireless_rear_mode(value)
+    coordinator.async_apply_local_change(wireless_rear_mode=value)
+
+
 @dataclass(frozen=True, kw_only=True)
 class KefSelectDescription(SelectEntityDescription):
     """Describe a KEF configuration select."""
@@ -323,6 +354,28 @@ SELECTS: tuple[KefSelectDescription, ...] = (
         options_map=SOUND_PROFILE_OPTIONS,
         model_feature="xio",
     ),
+    KefSelectDescription(
+        key="preferred_virtualiser",
+        translation_key="preferred_virtualiser",
+        entity_category=EntityCategory.CONFIG,
+        value_fn=_preferred_virtualiser_value,
+        async_set_fn=_async_set_preferred_virtualiser,
+        options_map=PREFERRED_VIRTUALISER_OPTIONS,
+        model_feature="xio",
+    ),
+)
+
+# Reported by an XIO once it runs firmware with wireless surround.
+SURROUND_SELECTS: tuple[KefSelectDescription, ...] = (
+    KefSelectDescription(
+        key="wireless_rear_mode",
+        translation_key="wireless_rear_mode",
+        entity_category=EntityCategory.CONFIG,
+        value_fn=lambda data: data.wireless_rear_mode,
+        async_set_fn=_async_set_wireless_rear_mode,
+        options_map=WIRELESS_REAR_MODE_OPTIONS,
+        model_feature="xio",
+    ),
 )
 
 
@@ -336,16 +389,26 @@ async def async_setup_entry(
     if coordinator.data.device.backend is not KefBackend.MODERN:
         return
 
-    entities = [
-        KefSelect(coordinator, description)
-        for description in SELECTS
-        if description.value_fn(coordinator.data) is not None
-        and description.model_available_fn(coordinator.data.device.model)
-        and model_supports_feature(
-            coordinator.data.device.model, description.model_feature
-        )
-    ]
-    async_add_entities(entities)
+    known_selects: set[str] = set()
+
+    @callback
+    def _async_add_selects() -> None:
+        """Discover optional selects when the speaker starts reporting them."""
+        data = coordinator.data
+        entities = [
+            KefSelect(coordinator, description)
+            for description in (*SELECTS, *SURROUND_SELECTS)
+            if description.key not in known_selects
+            and description.value_fn(data) is not None
+            and description.model_available_fn(data.device.model)
+            and model_supports_feature(data.device.model, description.model_feature)
+        ]
+        known_selects.update(entity.entity_description.key for entity in entities)
+        if entities:
+            async_add_entities(entities)
+
+    _async_add_selects()
+    entry.async_on_unload(coordinator.async_add_listener(_async_add_selects))
 
 
 class KefSelect(KefEntity, CoordinatorEntity[KefCoordinator], SelectEntity):
@@ -380,6 +443,12 @@ class KefSelect(KefEntity, CoordinatorEntity[KefCoordinator], SelectEntity):
             None, "wakeup_default",
         ):
             return [label for raw, label in options.items() if raw != "standby_20mins"]
+        if (
+            self.entity_description.key == "wireless_rear_mode"
+            and data.prefer_virtual_x
+        ):
+            # DTS Virtual:X renders 7.1.4 whatever layout the speaker has stored.
+            return [DTS_VIRTUAL_X_LAYOUT]
         return list(options.values())
 
     @property
@@ -388,6 +457,11 @@ class KefSelect(KefEntity, CoordinatorEntity[KefCoordinator], SelectEntity):
         value = self.entity_description.value_fn(self.coordinator.data)
         if value is None:
             return None
+        if (
+            self.entity_description.key == "wireless_rear_mode"
+            and self.coordinator.data.prefer_virtual_x
+        ):
+            return DTS_VIRTUAL_X_LAYOUT
         return self.entity_description.options_map.get(value, value)
 
     async def async_select_option(self, option: str) -> None:
@@ -399,6 +473,9 @@ class KefSelect(KefEntity, CoordinatorEntity[KefCoordinator], SelectEntity):
         raw_value = reverse_map.get(option, option)
         key = self.entity_description.key
         data = self.coordinator.data
+        if key == "wireless_rear_mode" and data.prefer_virtual_x:
+            # The displayed DTS layout is rendered, not a writable rear mode.
+            return
         if (
             key == "standby_mode"
             and raw_value == "standby_20mins"

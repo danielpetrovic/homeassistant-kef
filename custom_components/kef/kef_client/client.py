@@ -59,6 +59,7 @@ from .models import (
     KefFirmwareUpdateInfo,
     KefPlaybackInfo,
     KefSnapshot,
+    KefSurroundDevice,
     KefWifiInfo,
     _legacy_eq_profile_to_native,
     _native_eq_profile_to_legacy,
@@ -384,6 +385,14 @@ class BaseKefClient(ABC):
     @abstractmethod
     async def async_set_master_channel(self, channel: str) -> None:
         """Set the master channel assignment."""
+
+    @abstractmethod
+    async def async_set_wireless_rear_mode(self, mode: str) -> None:
+        """Set the wireless rear mode, `surround` (5.1.2) or `rearSurround` (7.1.2)."""
+
+    @abstractmethod
+    async def async_set_wireless_rear_gain(self, gain: float) -> None:
+        """Set the wireless rear speaker gain (XIO only)."""
 
     @abstractmethod
     async def async_set_fixed_volume_level(self, volume: int) -> None:
@@ -869,6 +878,45 @@ class ModernKefClient(BaseKefClient):
             )
         )
 
+        # Every speaker reports whether it is used as a wireless surround
+        # receiver; only the XIO transmits to its rear speakers.
+        surround_mode = self._extract_bool(
+            await self._get_optional_path_value(
+                PROBE_PATHS["surround_mode"],
+                typed_key="bool_",
+            )
+        )
+        surround_devices: tuple[KefSurroundDevice, ...] = ()
+        surround_master_channel = None
+        wireless_rear_mode = None
+        wireless_rear_gain = None
+        if surround_mode and device.model.upper() != "XIO":
+            surround_master_channel = self._extract_string(
+                await self._get_optional_path_value(
+                    PROBE_PATHS["surround_master_channel"],
+                    typed_key="kefMasterChannelMode",
+                )
+            )
+        if device.model.upper() == "XIO":
+            surround_devices = KefSurroundDevice.from_modern_list(
+                await self._get_optional_path_value(
+                    PROBE_PATHS["surround_device_list"],
+                    typed_key="surroundModeDeviceList",
+                )
+            )
+            wireless_rear_mode = self._extract_string(
+                await self._get_optional_path_value(
+                    PROBE_PATHS["wireless_rear_mode"],
+                    typed_key="kefDspWirelessRearMode",
+                )
+            )
+            wireless_rear_gain = self._extract_float(
+                await self._get_optional_path_value(
+                    PROBE_PATHS["wireless_rear_gain"],
+                    typed_key="double_",
+                )
+            )
+
         return KefSnapshot(
             device=device,
             speaker_status=speaker_status or STATE_OFF,
@@ -961,6 +1009,11 @@ class ModernKefClient(BaseKefClient):
             virtual_x_active=virtual_x_active,
             source_list=source_list,
             default_volume_by_source=default_volume_by_source,
+            surround_mode=surround_mode,
+            surround_devices=surround_devices,
+            wireless_rear_mode=wireless_rear_mode,
+            wireless_rear_gain=wireless_rear_gain,
+            surround_master_channel=surround_master_channel,
         )
 
     async def async_turn_on(self) -> None:
@@ -1453,6 +1506,22 @@ class ModernKefClient(BaseKefClient):
             PROBE_PATHS["master_channel"],
             role="value",
             value={"type": "kefMasterChannelMode", "kefMasterChannelMode": channel},
+        )
+
+    async def async_set_wireless_rear_mode(self, mode: str) -> None:
+        """Set the wireless rear mode."""
+        await self._set_data(
+            PROBE_PATHS["wireless_rear_mode"],
+            role="value",
+            value={"type": "kefDspWirelessRearMode", "kefDspWirelessRearMode": mode},
+        )
+
+    async def async_set_wireless_rear_gain(self, gain: float) -> None:
+        """Set the wireless rear speaker gain."""
+        await self._set_data(
+            PROBE_PATHS["wireless_rear_gain"],
+            role="value",
+            value={"type": "double_", "double_": gain},
         )
 
     async def async_set_fixed_volume_level(self, volume: int) -> None:
@@ -2937,6 +3006,18 @@ class LegacyBinaryClient(BaseKefClient):
         """Legacy speakers do not expose master-channel configuration."""
         raise KefUnsupportedDeviceError(
             "Master channel is not supported for legacy KEF"
+        )
+
+    async def async_set_wireless_rear_mode(self, mode: str) -> None:
+        """Legacy speakers do not expose wireless surround."""
+        raise KefUnsupportedDeviceError(
+            "Wireless rear mode is not supported for legacy KEF"
+        )
+
+    async def async_set_wireless_rear_gain(self, gain: float) -> None:
+        """Legacy speakers do not expose wireless surround."""
+        raise KefUnsupportedDeviceError(
+            "Wireless rear gain is not supported for legacy KEF"
         )
 
     async def async_set_fixed_volume_level(self, volume: int) -> None:

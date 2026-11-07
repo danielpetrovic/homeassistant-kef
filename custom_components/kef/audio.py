@@ -9,6 +9,16 @@ from .models import KefSnapshot
 _NATIVE_RENDERERS = {"Dolby Atmos"}
 
 
+# Output channels of the soundbar's own rendering: Dolby at 5.1.2 or 7.1.2
+# (the surround channel layout) and DTS Virtual:X at 7.1.4, as observed on an XIO.
+_RENDERED_LAYOUTS = {8: "5.1.2", 10: "7.1.2", 12: "7.1.4"}
+
+
+def _rendered_layout(audio_channels: int | None) -> str:
+    """Return the layout the soundbar renders, 5.1.2 when the count is unknown."""
+    return _RENDERED_LAYOUTS.get(audio_channels or 0, "5.1.2")
+
+
 def format_channels(channel_count: int | str | None) -> str | None:
     """Convert a channel count to audio format notation (for example, 5.1.2)."""
     if channel_count is None:
@@ -60,18 +70,16 @@ def audio_virtualizer_value(data: KefSnapshot) -> str | None:
     if virtualizer_name == "Direct" and data.virtual_x_active:
         # Without a Dolby processing part (e.g. DTS, which the Dolby upmixer
         # cannot process), Virtual:X is the renderer itself, not passthrough.
-        return f"DTS Virtual:X {format_channels(8)}"
+        return f"DTS Virtual:X {_rendered_layout(data.playback.audio_channels)}"
     if virtualizer_name == "Direct":
         channel_format = format_channels(data.playback.stream_channels)
         if channel_format is None:
             channel_format = format_channels(data.playback.audio_channels)
-    else:
-        channel_format = format_channels(8)
-    value = virtualizer_name
-    if channel_format:
-        value = f"{virtualizer_name} {channel_format}"
+        return f"{virtualizer_name} {channel_format}" if channel_format else "Direct"
+    layout = _rendered_layout(data.playback.audio_channels)
     # The codec string only names the Dolby upmixer; DTS Virtual:X is reported
-    # by a separate decoder flag and runs on top of it.
+    # by a separate decoder flag and runs on top of it, so the layout that
+    # follows is what Virtual:X renders.
     if data.virtual_x_active:
-        value = f"{value} + Virtual:X"
-    return value
+        return f"{virtualizer_name} + Virtual:X {layout}"
+    return f"{virtualizer_name} {layout}"

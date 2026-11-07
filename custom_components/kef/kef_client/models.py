@@ -161,6 +161,52 @@ class KefCalibrationStatus:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class KefSurroundDevice:
+    """A wireless surround speaker or subwoofer paired to an XIO."""
+
+    key: str
+    position: str | None = None
+    model_name: str | None = None
+    connection_type: str | None = None
+    connected: bool | None = None
+
+    @classmethod
+    def from_modern_value(cls, value: Any) -> KefSurroundDevice | None:
+        """Build a paired surround device from one device-list entry."""
+        if not isinstance(value, dict):
+            return None
+        receiver = value.get("rxDevice")
+        if not isinstance(receiver, dict):
+            receiver = {}
+        key = receiver.get("macAddress") or value.get("modelMacAddress")
+        if not isinstance(key, str) or not key:
+            return None
+        position = value.get("devicePosition") or receiver.get("devicePosition")
+        connected = receiver.get("isConnected")
+        return cls(
+            key=key.lower(),
+            position=position if isinstance(position, str) else None,
+            model_name=(
+                value["modelName"] if isinstance(value.get("modelName"), str) else None
+            ),
+            connection_type=(
+                value["connectionType"]
+                if isinstance(value.get("connectionType"), str)
+                else None
+            ),
+            connected=connected if isinstance(connected, bool) else None,
+        )
+
+    @classmethod
+    def from_modern_list(cls, value: Any) -> tuple[KefSurroundDevice, ...]:
+        """Build the paired surround devices from a device-list payload."""
+        if not isinstance(value, list):
+            return ()
+        devices = (cls.from_modern_value(item) for item in value)
+        return tuple(device for device in devices if device is not None)
+
+
 @dataclass(slots=True)
 class KefWifiInfo:
     """Flattened KEF Wi-Fi information."""
@@ -382,6 +428,11 @@ class KefSnapshot:
     virtual_x_active: bool | None
     source_list: tuple[str, ...]
     default_volume_by_source: dict[str, int] = field(default_factory=dict)
+    surround_mode: bool | None = None
+    surround_devices: tuple[KefSurroundDevice, ...] = ()
+    wireless_rear_mode: str | None = None
+    wireless_rear_gain: float | None = None
+    surround_master_channel: str | None = None
 
     @property
     def is_power_on(self) -> bool:

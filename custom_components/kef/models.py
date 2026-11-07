@@ -8,6 +8,7 @@ from .kef_client import (
     KefFirmwareUpdateInfo,
     KefPlaybackInfo,
     KefSnapshot,
+    KefSurroundDevice,
     KefWifiInfo,
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "KefFirmwareUpdateInfo",
     "KefPlaybackInfo",
     "KefSnapshot",
+    "KefSurroundDevice",
     "KefWifiInfo",
 ]

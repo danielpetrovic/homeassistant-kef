@@ -13,7 +13,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -43,6 +43,8 @@ def _room_calibration_value(data: KefSnapshot) -> str | None:
     if status.year and status.month and status.day:
         return f"{status.year}-{status.month:02d}-{status.day:02d}"
     return "Calibrated"
+
+
 @dataclass(frozen=True, kw_only=True)
 class KefSensorDescription(SensorEntityDescription):
     """Describe a KEF sensor."""
@@ -266,6 +268,17 @@ SENSORS: tuple[KefSensorDescription, ...] = (
     ),
 )
 
+# The orientation a rear speaker was given in the pairing test of the KEF app.
+SURROUND_RECEIVER_SENSORS: tuple[KefSensorDescription, ...] = (
+    KefSensorDescription(
+        key="surround_master_channel",
+        translation_key="surround_master_channel",
+        device_class=SensorDeviceClass.ENUM,
+        options=["left", "right"],
+        value_fn=lambda data: data.surround_master_channel,
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -289,6 +302,23 @@ async def async_setup_entry(
             continue
         entities.append(KefSensor(coordinator, description))
     async_add_entities(entities)
+
+    receiver_added = False
+
+    @callback
+    def _async_add_surround_sensors() -> None:
+        """Add the rear speaker sensors once the speaker reports them."""
+        nonlocal receiver_added
+        if receiver_added or coordinator.data.surround_master_channel is None:
+            return
+        receiver_added = True
+        async_add_entities(
+            KefSensor(coordinator, description)
+            for description in SURROUND_RECEIVER_SENSORS
+        )
+
+    _async_add_surround_sensors()
+    entry.async_on_unload(coordinator.async_add_listener(_async_add_surround_sensors))
 
 
 class KefSensor(KefEntity, CoordinatorEntity[KefCoordinator], SensorEntity):

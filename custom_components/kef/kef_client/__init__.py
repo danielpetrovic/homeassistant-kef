@@ -22,6 +22,7 @@ from .models import (
     KefFirmwareUpdateInfo,
     KefPlaybackInfo,
     KefSnapshot,
+    KefSurroundDevice,
     KefWifiInfo,
 )
 
@@ -39,6 +40,7 @@ __all__ = [
     "KefPlaybackInfo",
     "KefResponseError",
     "KefSnapshot",
+    "KefSurroundDevice",
     "KefUnsupportedDeviceError",
     "KefWifiInfo",
     "LegacyBinaryClient",

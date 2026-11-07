@@ -66,6 +66,10 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "surround_mode": { "name": "SUR: Mode" },
+      "surround_device_connected": { "name": "SUR: {speaker} connected" }
+    },
     "sensor": {
       "backend": { "name": "Backend" },
       "speaker_status": { "name": "Speaker status" },
@@ -91,7 +95,11 @@
       "audio_source_channels": { "name": "Audio channels (source)" },
       "audio_playback_channels": { "name": "Audio channels (playback)" },
       "room_calibration": { "name": "DSP: Room calibration" },
-      "calibration_adjustment": { "name": "DSP: Calibration adjustment" }
+      "calibration_adjustment": { "name": "DSP: Calibration adjustment" },
+      "surround_master_channel": {
+        "name": "SUR: Master channel",
+        "state": { "left": "Left", "right": "Right" }
+      }
     },
     "number": {
       "balance": { "name": "DSP: Balance" },
@@ -103,6 +111,7 @@
       "volume_step": { "name": "VOL: Step" },
       "fixed_volume_level": { "name": "VOL: Fixed level" },
       "sub_out_low_pass_frequency": { "name": "SW: Low-pass frequency" },
+      "wireless_rear_gain": { "name": "SUR: Rear volume" },
       "desk_mode_db": { "name": "DSP: Desk mode attenuation" },
       "wall_mode_db": { "name": "DSP: Wall mode attenuation" },
       "source_startup_volume": { "name": "VOL: {source} startup volume" }
@@ -121,7 +130,9 @@
       "subwoofer_polarity": { "name": "SW: Polarity" },
       "audio_polarity": { "name": "DSP: Audio polarity" },
       "subwoofer_preset": { "name": "SW: Model preset" },
-      "sound_profile": { "name": "DSP: Sound profile" }
+      "sound_profile": { "name": "DSP: Sound profile" },
+      "preferred_virtualiser": { "name": "SUR: Preferred virtualiser" },
+      "wireless_rear_mode": { "name": "SUR: Channel layout" }
     },
     "text": {
       "ui_language": { "name": "SYS: UI language" },
@@ -152,8 +163,7 @@
       "kw1_adapter": { "name": "SW: KW1 adapter" },
       "sub_enable_stereo": { "name": "SW: Stereo subwoofers" },
       "auto_detect_placement": { "name": "DSP: Auto-detect placement" },
-      "wall_mounted": { "name": "DSP: Wall mounted" },
-      "prefer_virtual_x": { "name": "DSP: Prefer DTS Virtual:X" }
+      "wall_mounted": { "name": "DSP: Wall mounted" }
     },
     "update": {
       "firmware": { "name": "Firmware" }

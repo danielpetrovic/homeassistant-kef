@@ -103,6 +103,27 @@ has no manual wall-mounted setting, so this switch is the only way to override
 the detected placement. Turning auto-detect off here keeps the existing room
 calibration; run **Start calibration** if the soundbar is physically moved.
 
+The surround entities use the `SUR:` prefix, like the KEF Connect app's
+"Surround controls" screen. An XIO on firmware 1.5 or newer, which supports
+wireless surround, gets a **Channel layout** select (5.1.2 or 7.1.2), a **Rear
+volume** slider (-10 to 10 in steps of 0.5), and a **Connected** sensor for each
+paired surround speaker. The **Preferred virtualiser** select (Dolby Surround or
+DTS Virtual:X) uses the same prefix; it replaces the earlier "Prefer DTS Virtual:X"
+switch. Update automations and dashboards targeting the old switch to use
+the **Preferred virtualiser** select with `Dolby Surround` or `DTS Virtual:X`.
+The KEF Connect app notes that most content is mixed for 5.1.2 and that the
+preferred virtualiser has no effect in Direct mode or while DTS content plays.
+While DTS Virtual:X is preferred, the app greys out the channel layout. The
+channel layout select shows 7.1.4 and offers no other
+choice, because DTS Virtual:X renders 7.1.4 whatever layout is stored; the stored
+layout returns when Dolby Surround is preferred again. Changing the channel
+layout or the preferred virtualiser interrupts the sound briefly.
+A speaker that is used as a rear speaker gets a **Mode** sensor (added when the
+speaker reports it on, so other speakers do not have one) and a **Master
+channel** sensor, which shows the left or right orientation that the pairing test
+in the KEF Connect app set. They appear once the speaker reports surround data. Pairing and changing
+the other surround settings stay in the KEF Connect app.
+
 ### Standby, USB audio, and computer visibility
 
 Home Assistant connects to the speaker over the network. A reachable speaker can

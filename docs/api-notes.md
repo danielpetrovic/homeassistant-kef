@@ -6,7 +6,9 @@ Per-model behaviour is in [model notes](model-notes.md).
 These notes combine live observations from an LSX II (firmware
 `3.0.137.0xf884312`), an LSX II LT (`2.1.86.0xdc74e88`), and an XIO
 (`1.4.135.0xd4e9dfd`) in September 2026 with the API path list of the KEF
-Connect Android app 1.31.0. Earlier observations are dated where they matter.
+Connect Android app 1.32.0. The wireless surround observations are from an XIO
+on firmware `1.5.160.0x00f793d` and an LSX II on `3.1.141.0x0a4f556` in
+November 2026. Earlier observations are dated where they matter.
 They are not a statement about other firmware. Network addresses and device
 identifiers are omitted.
 
@@ -57,7 +59,7 @@ does not reliably carry a per-speaker name, so the name is read from
 `settings:/deviceName` instead.
 
 An April 2026 LSX II probe also read `settings:/airplay/deviceName` and
-`network:profile`. Neither is in the KEF Connect 1.31.0 path list below.
+`network:profile`. Neither is in the KEF Connect 1.32.0 path list below.
 
 ## HTTP API
 
@@ -226,8 +228,8 @@ late 2025 and are no longer in the app.
 ## Path catalogue
 
 The paths the integration reads and writes are listed in
-`custom_components/kef/const.py` (`PROBE_PATHS`). The KEF Connect app 1.31.0
-names 189 paths. These are the ones not used by the integration, with
+`custom_components/kef/const.py` (`PROBE_PATHS`). The KEF Connect app 1.32.0
+names 192 paths. These are the ones not used by the integration, with
 what the three tested speakers returned for a plain read.
 
 | Area | Paths | Observed |
@@ -264,8 +266,9 @@ what the three tested speakers returned for a plain read.
 | XIO wireless subwoofer | `kefdsp:channelIdSignal` | Action path, not probed |
 | Firmware | `kef:fwupgrade/info` | Per-component progress, for example `systemMCU`, `usb`, `topPanel`, `bTLE` |
 | Network | `networkwizard:wireless/scan_activate`, `networkwizard:wireless/scan_results`, `network:scan`, `network:setNetworkProfile` | Setup paths, not probed |
-| Wireless rear speakers | `settings:/kef/dsp/wirelessRearMode`, `settings:/kef/dsp/wirelessRearGain` | Readable defaults (`surround`, `0`) on all three |
-| Wireless rear speakers | `settings:/kef/host/surroundMode`, `settings:/kef/dsp/surroundMode/deviceList`, `hostlink:/surroundMode/*`, `kefdsp:/surroundMode/*` | The settings paths return 500; for hardware KEF has not released yet |
+| Wireless surround | `settings:/kef/host/surroundModeMasterChannelMode` | `kefMasterChannelMode`, `left` or `right`; the setting of a rear speaker, changed by the pairing test in the app, see [wireless surround](#wireless-surround) |
+| Wireless surround | `settings:/kef/dsp/v2/subwooferGain` | `i32_`, `3` on the XIO on firmware 1.5.160; the app's surround audio screen has a subwoofer volume, which this probably is (unverified) |
+| Wireless surround | `hostlink:/surroundMode/*`, `kefdsp:/surroundMode/addDevice`, `/removeDevice`, `/updateDeviceInfo`, `kef:dedicatedEqProfiles/overwriteAllProfiles` | Action paths for pairing, removal, and channel changes, not probed; they change the pairing, so do not call them casually |
 | XIO wireless subwoofer | `kef:ble/*`, `kefdsp:bleTx01ChannelAssignment`, `kefdsp:bleTx02ChannelAssignment`, `kefdsp:txStatus`, `settings:/kef/ble/txFwVersion` | See [model notes](model-notes.md#wireless-subwoofer); do not activate update checks |
 
 Some paths change or erase speaker state and should never be called casually:
@@ -285,7 +288,7 @@ return the same value.
 
 ## Complete path list
 
-Every path the KEF Connect Android app 1.31.0 names, grouped by prefix. A path
+Every path the KEF Connect Android app 1.32.0 names, grouped by prefix. A path
 being listed says nothing about which models implement it; what the unused ones
 returned on real speakers is in the [path catalogue](#path-catalogue).
 
@@ -343,7 +346,8 @@ The Integration column shows how the integration covers each path:
 | `settings:/kef/host/startupTone` | ✓ |
 | `settings:/kef/host/subwooferForceOn` | ✓ |
 | `settings:/kef/host/subwooferForceOnKW1` | ✓ |
-| `settings:/kef/host/surroundMode` |  |
+| `settings:/kef/host/surroundMode` | ✓ |
+| `settings:/kef/host/surroundModeMasterChannelMode` | ✓ (read only) |
 | `settings:/kef/host/topPanelLED` | ✓ |
 | `settings:/kef/host/topPanelStandbyLED` | ✓ |
 | `settings:/kef/host/usbCharging` | ✓ |
@@ -368,22 +372,23 @@ The Integration column shows how the integration covers each path:
 | `settings:/kef/dsp/highPassModeFreq` | ✓ via EQ profile |
 | `settings:/kef/dsp/isKW1` | ✓ via EQ profile |
 | `settings:/kef/dsp/phaseCorrection` | ✓ via EQ profile |
-| `settings:/kef/dsp/preferVirtualX` | ✓ |
+| `settings:/kef/dsp/preferVirtualX` | ✓ (the app's "Preferred virtualiser": `false` is Dolby, `true` is DTS Virtual:X) |
 | `settings:/kef/dsp/subEnableStereo` | ✓ via EQ profile |
 | `settings:/kef/dsp/subOutLPFreq` | ✓ via EQ profile |
 | `settings:/kef/dsp/subwooferCount` | ✓ via EQ profile |
 | `settings:/kef/dsp/subwooferGain` | ✓ via EQ profile |
 | `settings:/kef/dsp/subwooferPolarity` | ✓ via EQ profile |
 | `settings:/kef/dsp/subwooferPreset` | ✓ via EQ profile |
-| `settings:/kef/dsp/surroundMode/deviceList` |  |
+| `settings:/kef/dsp/surroundMode/deviceList` | ✓ |
 | `settings:/kef/dsp/trebleAmount` | ✓ via EQ profile |
 | `settings:/kef/dsp/v2/dialogueMode` |  |
 | `settings:/kef/dsp/v2/soundProfile` | ✓ via EQ profile |
+| `settings:/kef/dsp/v2/subwooferGain` |  |
 | `settings:/kef/dsp/v2/subwooferOut` | ✓ via EQ profile |
 | `settings:/kef/dsp/wallMode` | ✓ via EQ profile |
 | `settings:/kef/dsp/wallModeSetting` | ✓ via EQ profile |
-| `settings:/kef/dsp/wirelessRearGain` |  |
-| `settings:/kef/dsp/wirelessRearMode` |  |
+| `settings:/kef/dsp/wirelessRearGain` | ✓ |
+| `settings:/kef/dsp/wirelessRearMode` | ✓ |
 
 ### Other `settings:/`
 
@@ -428,6 +433,7 @@ The Integration column shows how the integration covers each path:
 | `kef:ble/updateNow` |  |
 | `kef:ble/updateServer/txVersion` |  |
 | `kef:ble/updateStatus` |  |
+| `kef:dedicatedEqProfiles/overwriteAllProfiles` |  |
 | `kef:dsp/editValue` |  |
 | `kef:dspInfo` |  |
 | `kef:eqProfile` | ✓ |
@@ -538,6 +544,77 @@ The Integration column shows how the integration covers each path:
 | `ui:` |  |
 
 The integration also uses three paths the app does not name: `firmwareupdate:installUpdate`, `settings:/kef/host/speakerLocation`, and `settings:/webserver/authMode`.
+
+## Wireless surround
+
+An XIO on firmware 1.5 or newer can send its rear channels to a speaker that has
+a KW2 module. KEF's release notes of 5 November 2026 list the requirements: XIO
+1.5.160, LSX II 3.1.141 for an LSX II as rear speaker, KW2 and soundbar
+transmitter firmware 2.0.0.0, and KEF Connect 1.32.0. Pairing is done in the
+app; the integration only reads the state. On firmware 1.4.135 the surround
+settings paths returned 500, and `settings:/kef/dsp/wirelessSub` and
+`settings:/kef/dsp/subwooferCount` answer "Node ... does not exist" on 1.5.160.
+
+| Path | Value on the XIO |
+| --- | --- |
+| `settings:/kef/host/surroundMode` | `bool_`; `false` on the XIO, `true` on an LSX II used as rear speaker, see below |
+| `settings:/kef/dsp/surroundMode/deviceList` | `surroundModeDeviceList`, one entry per paired device |
+| `settings:/kef/dsp/wirelessRearMode` | `kefDspWirelessRearMode`, `surround` (5.1.2 in the app) or `rearSurround` (7.1.2); written by the integration and verified on firmware 1.5.160 |
+| `settings:/kef/dsp/wirelessRearGain` | `double_`; read `0` on firmware 1.4.135 and `5` on 1.5.160; the app allows -10 to 10 in steps of 0.5, and the speaker accepted writes of -10, 10, and 5 |
+| `settings:/kef/host/surroundModeMasterChannelMode` | `kefMasterChannelMode`, `left` or `right`; read on the rear speaker, see below |
+
+A device-list entry has `modelName`, `modelMacAddress`, `modelIpAddress`,
+`connectionType` (`kw2`), `devicePosition`, and an `rxDevice` block with
+`macAddress` (the KW2 receiver), `isConnected`, `channelMode`, `devicePosition`,
+and `firmwareVersion`. The app knows the positions `unset`, `subwoofer`,
+`leftSubwoofer`, `rightSubwoofer`, `stereoRear`, `leftRear`, and `rightRear`. One
+KW2 carries one stereo signal, so it is reported as one `stereoRear` device. In
+the tested setup that is a wireless stereo pair of two LSX II (the rear speaker
+reports `cableMode` `wireless`): the KW2 feeds the primary speaker at rear left,
+which passes the right channel to its secondary speaker at rear right.
+`isConnected` was `false` while the XIO was in standby and became `true` when the
+XIO played surround content. `rxDevice.firmwareVersion` read `1`,
+so it is not the KW2 firmware version; those versions come from `kef:ble/*`,
+which the integration never activates.
+
+KEF Connect shows a "Channel layout" with 5.1.2 and 7.1.2 on its "Surround
+controls" screen, next to the preferred virtualiser (Dolby or DTS Virtual:X,
+`settings:/kef/dsp/preferVirtualX`). The app's code maps `surround` to 5.1.2 and
+`rearSurround` to 7.1.2, and those are the only two values of
+`kefDspWirelessRearMode`. The app disables the layout choice while DTS Virtual:X
+is preferred. Writes of `surround` and `rearSurround` (typed
+`kefDspWirelessRearMode`) were verified on an XIO on firmware 1.5.160 in both
+directions, each read back from the speaker; with `rearSurround` the Atmos stream
+reports `nrAudioChannels` 10 instead of 8. The speaker also accepts a layout write
+while DTS Virtual:X is preferred (the app only greys the choice out), but with DTS
+Virtual:X preferred an Atmos stream reports `nrAudioChannels` 12 in both layouts, so
+the layout has no effect on the output then, in line with the app forcing 5.1.2. Every
+change of the layout or the preferred virtualiser interrupts the sound briefly.
+The app labels the rear gain "Wireless rear volume" and allows -10 to
+10 in steps of 0.5 (default 0). For `surroundModeMasterChannelMode` the app reads
+the value and writes the opposite one, the same code path as its "Inverse L/R
+speaker" action, and the pairing test changes it (see below); the app does not
+offer it as a setting after pairing, and whether the speaker accepts a write
+outside pairing is not verified. The app also refuses most setting changes on a
+speaker that is currently used as a rear speaker ("Speaker is in Surround mode").
+
+`settings:/kef/host/surroundMode` is a per-speaker flag, not the transmitter
+state: the rear LSX II (firmware 3.1.141, source `optical` because the KW2 feeds
+its optical input) reported `true`, while the XIO reported `false` in standby and
+while playing surround content. That flag is what the app calls "Speaker is in
+Surround mode". The rear speaker's own device list is empty, its
+`wirelessRearGain` reads `0`, and both speakers read `left` for
+`surroundModeMasterChannelMode` and `right` for `masterChannelMode`.
+
+`surroundModeMasterChannelMode` is the rear speaker's own `left` or `right`
+setting, changed by the pairing test in the app. The test sound does not always
+play from the same speaker: in three runs it came from the rear right, then the
+rear left, then the rear left again. Choosing the speaker that played left the
+value at `left` (or set it back to `left`), and choosing the speaker that did not
+play changed it to `right`, which swapped the two channels. Nothing else on the
+rear speaker changed, and neither did anything on the XIO (its own value stayed
+`left` and its device list was identical), so the setting reads as an
+orientation flag where `left` is the correct one after a matching choice.
 
 ## Fixture guidance
 

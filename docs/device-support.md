@@ -10,7 +10,7 @@ support and real-hardware validation are different things.
 | --- | --- |
 | LSX II | Real-device local refresh, event queue, and control-path validation |
 | LSX II LT | Real-device refresh, event queue, and settings in daily use |
-| XIO | Real-device refresh, event queue, and settings, including the XIO-only placement, virtualizer, and calibration controls |
+| XIO | Real-device refresh, event queue, and settings, including the XIO-only placement, virtualizer, and calibration controls, and wireless surround controls |
 | LS50 Wireless II, LS60 | Modern API compatibility targets; model-specific hardware reports are welcome |
 | First-generation LSX / LS50 Wireless | Legacy transport implemented; further real-hardware validation is needed |
 

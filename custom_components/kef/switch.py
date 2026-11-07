@@ -295,16 +295,6 @@ async def _async_set_wall_mounted(
     apply_eq_profile_change(coordinator, wall_mounted=bool(applied["wallMounted"]))
 
 
-async def _async_set_prefer_virtual_x(
-    coordinator: KefCoordinator,
-    enabled: bool,
-) -> None:
-    """Prefer DTS Virtual:X over the Dolby virtualizer."""
-    client = get_initialized_client(coordinator)
-    await client.async_set_prefer_virtual_x(enabled)
-    coordinator.async_apply_local_change(prefer_virtual_x=enabled)
-
-
 @dataclass(frozen=True, kw_only=True)
 class KefSwitchDescription(SwitchEntityDescription):
     """Describe a KEF configuration switch."""
@@ -509,14 +499,6 @@ SWITCHES: tuple[KefSwitchDescription, ...] = (
             data.eq_profile.wall_mounted if data.eq_profile else None
         ),
         async_set_fn=_async_set_wall_mounted,
-        model_feature="xio",
-    ),
-    KefSwitchDescription(
-        key="prefer_virtual_x",
-        translation_key="prefer_virtual_x",
-        entity_category=EntityCategory.CONFIG,
-        value_fn=lambda data: data.prefer_virtual_x,
-        async_set_fn=_async_set_prefer_virtual_x,
         model_feature="xio",
     ),
 )

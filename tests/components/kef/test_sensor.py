@@ -83,6 +83,8 @@ def test_format_channels_accepts_numeric_and_wire_string_values(
         ),
         ("PCM", "2.0", 2, "PCM 2.0", "Direct 2.0"),
         ("Dolby Atmos", 0, 8, "Dolby Atmos", "Dolby Atmos 5.1.2"),
+        # Observed on an XIO with the surround channel layout set to 7.1.2.
+        ("Dolby Atmos", 0, 10, "Dolby Atmos", "Dolby Atmos 7.1.2"),
         (None, None, None, None, None),
     ],
 )
@@ -111,7 +113,19 @@ def test_audio_virtualizer_includes_virtual_x_when_active() -> None:
     snapshot.playback.codec = "Dolby Digital Plus - Dolby Surround"
     snapshot.virtual_x_active = True
 
-    assert audio_virtualizer_value(snapshot) == "Dolby Surround 5.1.2 + Virtual:X"
+    assert audio_virtualizer_value(snapshot) == "Dolby Surround + Virtual:X 5.1.2"
+
+
+def test_audio_virtualizer_shows_what_virtual_x_renders_for_atmos() -> None:
+    """With DTS Virtual:X preferred an Atmos stream is rendered at 7.1.4."""
+    snapshot = deepcopy(TEST_SNAPSHOT)
+    assert snapshot.playback is not None
+    snapshot.playback.codec = "Dolby Atmos"
+    snapshot.playback.stream_channels = 0
+    snapshot.playback.audio_channels = 12
+    snapshot.virtual_x_active = True
+
+    assert audio_virtualizer_value(snapshot) == "Dolby Atmos + Virtual:X 7.1.4"
 
 
 def test_audio_virtualizer_names_virtual_x_as_renderer_for_dts() -> None:
@@ -124,7 +138,7 @@ def test_audio_virtualizer_names_virtual_x_as_renderer_for_dts() -> None:
     snapshot.virtual_x_active = True
 
     assert audio_codec_value(snapshot) == "DTS 5.1"
-    assert audio_virtualizer_value(snapshot) == "DTS Virtual:X 5.1.2"
+    assert audio_virtualizer_value(snapshot) == "DTS Virtual:X 7.1.4"
 
 
 def test_audio_virtualizer_keeps_direct_when_virtual_x_is_off() -> None:

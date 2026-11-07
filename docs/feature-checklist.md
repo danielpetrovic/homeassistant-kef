@@ -22,9 +22,12 @@ integration already exist; this list tracks remaining work.
 - [ ] Consider exposing the scheduled reboot settings
   (`settings:/kef/scheduledReboot/*`), present on the LSX II, LSX II LT, and
   XIO, and the Bluetooth connection state from `bluetooth:state`.
-- [ ] Revisit XIO wireless subwoofer (BLE) firmware versions once wireless rear
-  speakers ship. Reads are safe, but activating an update check disconnected the
-  KW2 receiver; see the [model notes](model-notes.md#wireless-subwoofer).
+- [ ] Revisit XIO wireless subwoofer (BLE) firmware versions now that wireless
+  rear speakers have shipped. Reads are safe, but activating an update check
+  disconnected the KW2 receiver; see the [model notes](model-notes.md#wireless-subwoofer).
+- [ ] Test whether a rear speaker accepts a
+  write of `surroundModeMasterChannelMode` outside the app's pairing test; see
+  [wireless surround](api-notes.md#wireless-surround).
 
 ## Home Assistant usability
 

@@ -1,5 +1,6 @@
 """Downloads must help failed setup without exposing private connection data."""
 
+import errno
 import json
 import socket
 from html.parser import HTMLParser
@@ -107,11 +108,11 @@ async def test_setup_report_requires_admin_and_bounds_memory(
 async def test_setup_download_retains_both_protocol_connection_failures(
     hass, hass_client,
 ) -> None:
-    """Refused HTTP and TCP probes remain distinguishable in the safe download."""
+    """Failed HTTP and TCP probes remain distinguishable in the safe download."""
     assert await async_setup_component(hass, "http", {})
     client = await hass_client()
-    # Bind but do not listen: both ports refuse connections without another
-    # process being able to claim them while the test runs.
+    # Bind but do not listen: neither port can accept a connection or be claimed
+    # by another process. The platform may report refusal or a connect timeout.
     with socket.socket() as http_socket, socket.socket() as legacy_socket:
         http_socket.bind(("127.0.0.1", 0))
         legacy_socket.bind(("127.0.0.1", 0))
@@ -133,7 +134,13 @@ async def test_setup_download_retains_both_protocol_connection_failures(
             for probe in probes] == [
         ("modern", http_port, "connect"), ("legacy", legacy_port, "connect"),
     ]
-    assert all(any(item.get("errno") == 111 for item in probe) for probe in probes)
+    assert all(
+        any(
+            item.get("errno") == errno.ECONNREFUSED or item["type"] == "TimeoutError"
+            for item in probe
+        )
+        for probe in probes
+    )
     for private in ("127.0.0.1", "secret-password", "http://", "private"):
         assert private not in json.dumps(report)
 

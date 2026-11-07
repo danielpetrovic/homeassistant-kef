@@ -85,6 +85,9 @@
       },
       "sound_profile": {
         "default": "mdi:surround-sound"
+      },
+      "preferred_virtualiser": {
+        "default": "mdi:surround-sound"
       }
     },
     "sensor": {
@@ -218,9 +221,6 @@
       },
       "wall_mounted": {
         "default": "mdi:wall"
-      },
-      "prefer_virtual_x": {
-        "default": "mdi:surround-sound"
       }
     },
     "text": {

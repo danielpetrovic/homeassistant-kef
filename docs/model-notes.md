@@ -7,8 +7,9 @@ speakers. Protocol details shared by all modern models are in
 Unless dated otherwise, observations are from September 2026 on an LSX II
 (firmware `3.0.137.0xf884312`), an LSX II LT (`2.1.86.0xdc74e88`), and an XIO
 (`1.4.135.0xd4e9dfd`). Earlier observations, from late 2025, are marked as
-such; firmware has changed since. The LS50 Wireless II and LS60 have not been
-tested on hardware. Device identifiers are omitted.
+such; firmware has changed since. The wireless surround notes are from November
+2026, with an XIO on `1.5.160.0x00f793d` and an LSX II on `3.1.141.0x0a4f556`.
+The LS50 Wireless II and LS60 have not been tested on hardware. Device identifiers are omitted.
 
 ## Identification
 
@@ -125,18 +126,30 @@ these profiles.
 The codec string in `activeResource.codec` has the form
 `<codec> - <processing>`, for example `Dolby Digital Plus - Dolby Surround`.
 `Dolby PCM` is plain PCM. Native Dolby Atmos reports exactly `Dolby Atmos` with
-no processing part, `streamChannels` 0, and `nrAudioChannels` 8.
+no processing part, `streamChannels` 0, and `nrAudioChannels` 8. With the
+surround channel layout set to 7.1.2 (`settings:/kef/dsp/wirelessRearMode` =
+`rearSurround`), the same Atmos stream reports `nrAudioChannels` 10, and the
+virtualizer sensor shows 7.1.2 instead of 5.1.2.
 
 The processing part only names the Dolby upmixer. Whether DTS Virtual:X is also
 processing is a separate flag, `imx8af:decoderInfoVirtualXActive`, which turns
 true when `settings:/kef/dsp/preferVirtualX` is enabled. The KEF Connect app
-then lists both ("Dolby Surround, Virtual:X").
+then lists both ("Dolby Surround, Virtual:X"). That setting is the app's
+"Preferred virtualiser" (Dolby virtualiser or DTS Virtual:X, on its Surround
+controls screen, KEF Connect 1.32.0); the integration calls the Dolby option
+"Dolby Surround", the name the speaker uses in its codec string.
 
 DTS content reports a bare `DTS` codec string with no processing part, and the
 flag is true even with `preferVirtualX` off (observed with DTS 5.1: six stream
 channels, `nrAudioChannels` 12). The Dolby upmixer cannot process DTS, so
 Virtual:X renders it; the KEF Connect app shows just "DTS Virtual:X". The
-virtualizer sensor reports this as "DTS Virtual:X 5.1.2".
+virtualizer sensor reports this as "DTS Virtual:X 7.1.4".
+
+The channel layout follows `nrAudioChannels`, the count of rendered output
+channels: 8 is 5.1.2, 10 is 7.1.2 and 12 is 7.1.4. Dolby rendering gives 8 or 10
+depending on the surround channel layout; with DTS Virtual:X preferred the same
+Atmos stream reports 12 in both layouts, so the sensor shows "Dolby Atmos +
+Virtual:X 7.1.4". Any other count is shown as 5.1.2.
 
 ### Artwork
 
@@ -172,9 +185,27 @@ power-cycled. The receiver also disappeared from the `kef:ble/ui` device list,
 so that list is update bookkeeping, not connection state. Leave firmware checks
 and updates for the wireless subwoofer module to the KEF Connect app.
 
-The app already carries paths for wireless rear speakers
-(`settings:/kef/dsp/wirelessRearMode` with `surround` or `rearSurround`, and
-`settings:/kef/dsp/wirelessRearGain`), for hardware KEF has not released yet.
+Wireless rear speakers are covered under [wireless surround](#wireless-surround).
+
+### Wireless surround
+
+Firmware 1.5.160 (5 November 2026) adds wireless surround. A rear speaker needs
+its own KW2 module, an LSX II as rear speaker needs firmware 3.1.141, and the KW2
+and the soundbar transmitter need firmware 2.0.0.0. KEF Connect 1.32.0 does the
+pairing; with one KW2 the rear speaker is a single stereo signal, which the XIO
+lists as `stereoRear`. A KW2 can also be paired to a subwoofer, and two
+subwoofers can be used. On the XIO the integration reads which devices are paired and
+connected, and reads and writes the channel layout (wireless rear mode) and the
+wireless rear gain; on a rear speaker
+it reads whether the speaker is in surround mode; see the [API notes](api-notes.md#wireless-surround) for the values
+and what is still unverified.
+
+The XIO reports the paired LSX II in `settings:/kef/dsp/surroundMode/deviceList`
+with the speaker's own address, so the same LSX II is also a normal Home
+Assistant entry of its own. The app refuses most setting changes on a speaker
+that is used as a rear speaker, so writes to that LSX II can be rejected. A rear
+LSX II reports `settings:/kef/host/surroundMode` as `true`, which is how it can
+be told apart from a normal speaker.
 
 ### Other XIO behaviour
 
